@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Strategy vs. Paperwork | False Case Defense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #c21807; /* Strategy Red */
+            --bg: #0a0a0a;
+            --text: #e5e5e5;
+            --ease: cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow: hidden; 
+        }
+        h1, h2 {
+            font-family: 'Playfair Display', serif;
+        }
+        .snap-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+        .snap-container::-webkit-scrollbar {
+            display: none;
+        }
+        section {
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- Animations --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+        }
+        .active .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Border Grow Animation */
+        .border-accent {
+            border-left: 0px solid var(--primary);
+            transition: border-width 0.6s var(--ease);
+        }
+        .active .border-accent {
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Sledgehammer Slam */
+        @keyframes slam {
+            0% { transform: scale(2) translateY(-100px); opacity: 0; }
+            60% { transform: scale(0.9) translateY(0); opacity: 1; }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .active .animate-slam {
+            animation: slam 0.7s var(--ease) forwards;
+        }
+
+        /* Shimmer for Button */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer-btn {
+            background: linear-gradient(90deg, #c21807 0%, #ff4d4d 50%, #c21807 100%);
+            background-size: 200% 100%;
+        }
+        .shimmer-btn:hover {
+            animation: shimmer 1.5s infinite linear;
+        }
+
+        /* Pop-up Styles */
+        #contactPopup {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s var(--ease);
+            backdrop-filter: blur(10px);
+        }
+        #contactPopup.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .popup-card {
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.4s var(--ease);
+        }
+        #contactPopup.active .popup-card {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Grid Stagger */
+        .grid-item {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.5s var(--ease);
+        }
+        .active .grid-item {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Background Zoom */
+        .bg-zoom {
+            transition: transform 10s linear;
+        }
+        .active .bg-zoom {
+            transform: scale(1.15);
+        }
+
+        /* Delays */
+        .delay-1 { transition-delay: 0.1s; animation-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; animation-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; animation-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; animation-delay: 0.4s; }
+        .delay-5 { transition-delay: 0.5s; animation-delay: 0.5s; }
+        
+        .bg-gradient-overlay {
+            background: linear-gradient(180deg, rgba(10,10,10,0.8) 0%, rgba(10,10,10,0.95) 100%);
+        }
+        .accent-text {
+            color: var(--primary);
+        }
+        .progress-bar {
+            position: fixed;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 50;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.4s var(--ease);
+            cursor: pointer;
+        }
+        .dot.active {
+            background: var(--primary);
+            transform: scale(2);
+            box-shadow: 0 0 10px var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Contact Popup -->
+    <div id="contactPopup" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80">
+        <div class="popup-card bg-zinc-900 border border-zinc-800 w-full max-w-sm p-8 rounded-lg shadow-2xl relative">
+            <button onclick="togglePopup()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-700/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <img src="strategy_icon.png" class="w-8 h-8" alt="Strategy">
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Direct Consultation</h3>
+                <p class="text-gray-400 text-sm mb-6">Secure your defense strategy before the next move is made.</p>
+                
+                <div class="bg-black/40 py-3 px-4 rounded border border-zinc-800 mb-6 flex flex-col items-center">
+                    <span class="text-xs text-gray-500 uppercase tracking-widest mb-1">WhatsApp Number</span>
+                    <span class="text-xl font-mono text-white tracking-widest">+91 9873540498</span>
+                </div>
+
+                <a href="https://wa.me/919873540498" target="_blank" class="block w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-sm tracking-widest uppercase transition-all shadow-lg text-center" onclick="playSound()">
+                    Chat on WhatsApp
+                </a>
+                <p class="text-[10px] text-gray-600 mt-4 uppercase tracking-tighter italic">Strategizing for early closure & case neutralization</p>
+            </div>
+        </div>
+    </div>
+
+    <main class="snap-container" id="mainScroll">
+        <!-- Hero Section -->
+        <section id="hero">
+            <div class="absolute inset-0 z-0">
+                <img src="warning_bg.png" alt="Background" class="w-full h-full object-cover opacity-30 bg-zoom">
+                <div class="absolute inset-0 bg-gradient-overlay"></div>
+            </div>
+            <div class="relative z-10 max-w-lg">
+                <span class="inline-block px-3 py-1 mb-4 text-xs font-bold tracking-widest text-white bg-red-700 uppercase reveal">Critical Warning</span>
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 reveal delay-1">Read This Before You Fight a False Case Alone</h1>
+                <p class="text-xl text-gray-400 reveal delay-2 leading-relaxed">
+                    False cases are <span class="text-white font-semibold">not paperwork problems</span>. 
+                    They are <span class="accent-text font-semibold italic">strategy wars</span>.
+                </p>
+                <div class="mt-8 flex items-center gap-2 text-sm text-gray-500 reveal delay-3">
+                    <span>Scroll to understand the stakes</span>
+                    <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- DIY Failure -->
+        <section id="diy-fail">
+            <div class="max-w-lg">
+                <h2 class="text-3xl font-bold mb-8 reveal">❌ Why DIY Writing Fails</h2>
+                <div class="space-y-6">
+                    <div class="reveal delay-1 border-accent pl-4">
+                        <p class="text-lg leading-snug">
+                            <span class="text-white font-bold">One wrong sentence</span> can strengthen the false case.
+                        </p>
+                    </div>
+                    <div class="reveal delay-2 border-accent pl-4">
+                        <p class="text-lg leading-snug">
+                            <span class="text-white font-bold">One early move</span> can lock you into years of trial.
+                        </p>
+                    </div>
+                    <div class="reveal delay-3 border-accent pl-4">
+                        <p class="text-lg leading-snug italic text-red-500">
+                            "Once damage is done, no lawyer, no appeal, and no apology can reverse it."
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sledgehammer Truth -->
+        <section id="sledgehammer">
+            <div class="max-w-lg text-center mx-auto">
+                <img src="sledgehammer_icon.png" class="w-24 h-24 mx-auto mb-6 opacity-0 animate-slam" alt="Icon">
+                <h2 class="text-3xl font-bold mb-6 reveal delay-1">The Sledgehammer Truth</h2>
+                <p class="text-gray-400 mb-8 reveal delay-2">
+                    A sledgehammer can break stones. But hit randomly, and you break the <span class="text-white">wrong part</span>—or injure yourself.
+                </p>
+                <div class="grid grid-cols-2 gap-4 text-sm font-semibold">
+                    <div class="p-4 bg-zinc-900 border border-zinc-800 rounded grid-item delay-3">WHERE TO HIT</div>
+                    <div class="p-4 bg-zinc-900 border border-zinc-800 rounded grid-item delay-4">HOW HARD TO HIT</div>
+                    <div class="p-4 bg-zinc-900 border border-zinc-800 rounded grid-item delay-5">WHEN TO HIT</div>
+                    <div class="p-4 bg-zinc-900 border border-zinc-800 rounded grid-item delay-5">WHEN NOT TO HIT</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- What I Actually Do -->
+        <section id="expertise">
+            <div class="max-w-lg">
+                <div class="flex items-center gap-4 mb-6 reveal">
+                    <img src="strategy_icon.png" class="w-12 h-12" alt="Strategy">
+                    <h2 class="text-3xl font-bold">What I Actually Do</h2>
+                </div>
+                <ul class="space-y-4 reveal delay-1 text-gray-300">
+                    <li class="flex items-start gap-2">
+                        <span class="accent-text">●</span> <span>Decide what <span class="text-white font-bold">must never</span> be written.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="accent-text">●</span> <span>Determine when silence is stronger than action.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="accent-text">●</span> <span>Identify which authority to activate or bypass.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="accent-text">●</span> <span>Keep winning strategies concealed.</span>
+                    </li>
+                </ul>
+                <p class="mt-8 text-sm italic text-gray-500 reveal delay-2">
+                    This is how false cases are contained, neutralized, and closed early.
+                </p>
+            </div>
+        </section>
+
+        <!-- Trial Not Inevitable -->
+        <section id="outcomes">
+            <div class="max-w-lg">
+                <h2 class="text-3xl font-bold mb-8 reveal">Trial Is Not Inevitable</h2>
+                <div class="bg-zinc-900 p-6 rounded-lg reveal delay-1 mb-6">
+                    <p class="text-gray-400 leading-relaxed">
+                        With correct strategy, a false case can be <span class="text-green-500 font-bold">stopped early</span>, preventing a full trial that drains finances and dignity.
+                    </p>
+                </div>
+                <div class="space-y-4 reveal delay-2">
+                    <h3 class="text-xs uppercase tracking-widest text-gray-500">We Protect:</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="px-3 py-1 bg-zinc-800 rounded text-sm">Career</span>
+                        <span class="px-3 py-1 bg-zinc-800 rounded text-sm">Reputation</span>
+                        <span class="px-3 py-1 bg-zinc-800 rounded text-sm">Family</span>
+                        <span class="px-3 py-1 bg-zinc-800 rounded text-sm">Mental Peace</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Closing Call to Action -->
+        <section id="cta" class="text-center">
+            <div class="max-w-lg mx-auto">
+                <h2 class="text-4xl font-bold mb-8 reveal">The Difference</h2>
+                <p class="text-xl mb-12 reveal delay-1 text-gray-300 italic">
+                    "I don’t gamble with your future. I calculate."
+                </p>
+                <div class="space-y-6 reveal delay-2">
+                    <p class="text-gray-400">
+                        If you want control, clarity, and the least possible damage—<span class="text-white font-bold">do not experiment</span>.
+                    </p>
+                    <button class="w-full py-4 bg-red-700 text-white font-bold rounded-sm tracking-widest uppercase shimmer-btn transition-all shadow-lg active:scale-95" onclick="togglePopup(); playSound();">
+                        Consult Expertise
+                    </button>
+                    <p class="text-xs text-gray-600 mt-4">This is not fear. This is reality.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        const container = document.getElementById('mainScroll');
+        const sections = document.querySelectorAll('section');
+        const progressDots = document.getElementById('progressBar');
+
+        // Create navigation dots
+        sections.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i === 0 ? 'active' : ''}`;
+            dot.addEventListener('click', () => {
+                sections[i].scrollIntoView({ behavior: 'smooth' });
+            });
+            progressDots.appendChild(dot);
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.5
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    // Update dots
+                    const index = Array.from(sections).indexOf(entry.target);
+                    document.querySelectorAll('.dot').forEach((dot, i) => {
+                        dot.classList.toggle('active', i === index);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => observer.observe(section));
+
+        // Popup Logic
+        const popup = document.getElementById('contactPopup');
+        window.togglePopup = () => {
+            popup.classList.toggle('active');
+        };
+
+        // Close popup on background click
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) togglePopup();
+        });
+
+        // Subtle Click Sound Effect
+        window.playSound = () => {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(150, context.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.1, context.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start();
+            oscillator.stop(context.currentTime + 0.5);
+        };
+    </script>
+</body>
+</html>
